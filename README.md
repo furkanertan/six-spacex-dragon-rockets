@@ -19,12 +19,12 @@ This is a simple Java library for managing SpaceX Dragon Rockets and Missions. T
 ```java
 SpaceXLibrary library = new SpaceXLibrary();
 
-Rocket rocket1 = new Rocket("1", "Dragon 1");
-Mission mission1 = new Mission("1", "Mars");
+Rocket rocket1 = new Rocket("Dragon 1");
+Mission mission1 = new Mission("Mars");
 
 library.addRocket(rocket1);
 library.addMission(mission1);
 
-library.assignRocketToMission("1", "1");
+library.assignRocketToMission("Dragon 1", "Mars");
 
 List<Mission> summary = library.getMissionSummary();
