@@ -1,6 +1,7 @@
 package spacex.service;
 
 import lombok.AllArgsConstructor;
+import spacex.constant.ErrorMessages;
 import spacex.domain.Mission;
 import spacex.domain.MissionStatus;
 import spacex.domain.Rocket;
@@ -13,6 +14,8 @@ import spacex.repository.RocketRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static spacex.constant.ErrorMessages.*;
 
 @AllArgsConstructor
 public class MissionRocketAssignmentService {
@@ -29,11 +32,11 @@ public class MissionRocketAssignmentService {
         Mission mission = missionRepository.getMission(missionName);
 
         if (rocket == null || mission == null) {
-            throw new RocketAssignmentException("Rocket or Mission not found");
+            throw new RocketAssignmentException(ROCKET_OR_MISSION_NOT_FOUND);
         }
 
         if (rocket.getStatus() != RocketStatus.ON_GROUND) {
-            throw new RocketAssignmentException("Rocket is not available for assignment");
+            throw new RocketAssignmentException(ROCKET_NOT_AVAILABLE);
         }
 
         rocket.setStatus(RocketStatus.IN_SPACE);
@@ -61,7 +64,7 @@ public class MissionRocketAssignmentService {
     public void assignRocketsToMission(List<String> rocketNames, String missionName) throws RocketAssignmentException {
         Mission mission = missionRepository.getMission(missionName);
         if (mission == null) {
-            throw new RocketAssignmentException("Mission not found");
+            throw new RocketAssignmentException(ErrorMessages.MISSION_NOT_FOUND);
         }
 
         for (String rocketName : rocketNames) {
@@ -72,11 +75,11 @@ public class MissionRocketAssignmentService {
     public void changeMissionStatus(String missionName, MissionStatus status) throws MissionStatusException {
         Mission mission = missionRepository.getMission(missionName);
         if (mission == null) {
-            throw new MissionStatusException("Mission not found");
+            throw new MissionStatusException(ErrorMessages.MISSION_NOT_FOUND);
         }
 
         if (status == MissionStatus.ENDED && !mission.getRockets().isEmpty()) {
-            throw new MissionStatusException("Cannot end mission with rockets assigned");
+            throw new MissionStatusException(ErrorMessages.MISSION_CANNOT_END);
         }
 
         mission.setStatus(status);
