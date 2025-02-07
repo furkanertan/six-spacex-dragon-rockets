@@ -1,4 +1,4 @@
-package domain;
+package spacex.domain;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
