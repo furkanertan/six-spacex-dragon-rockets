@@ -1,7 +1,6 @@
 package spacex.domain;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.util.HashSet;
@@ -10,7 +9,6 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@RequiredArgsConstructor
 public class Mission {
     private String id;
     private String name;
