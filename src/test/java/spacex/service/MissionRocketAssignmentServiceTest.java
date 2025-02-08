@@ -143,12 +143,28 @@ class MissionRocketAssignmentServiceTest {
     void shouldThrowExceptionWhenInRepairRocketAssignedToMission() throws InvalidEntryException {
         // Given
         Rocket rocket = new Rocket("Dragon 1");
+        rocket.setStatus(RocketStatus.IN_REPAIR);
+
+        Mission mission = new Mission("Jupiter");
+
+        missionRocketAssignmentService.addRocket(rocket);
+
+        // When & Then
+        assertThrows(RocketStatusException.class, () -> missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName()));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenAlreadyInSpaceRocketAssignedToMission() throws InvalidEntryException {
+        // Given
+        Rocket rocket = new Rocket("Dragon 1");
+        rocket.setStatus(RocketStatus.IN_SPACE);
+
         Mission mission = new Mission("Mars");
 
         missionRocketAssignmentService.addRocket(rocket);
 
         // When & Then
-        assertThrows(MissionStatusException.class, () -> missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName()));
+        assertThrows(RocketStatusException.class, () -> missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName()));
     }
 
     @Test
