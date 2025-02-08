@@ -6,8 +6,9 @@ import spacex.domain.Mission;
 import spacex.domain.MissionStatus;
 import spacex.domain.Rocket;
 import spacex.domain.RocketStatus;
+import spacex.exception.InvalidEntryException;
 import spacex.exception.MissionStatusException;
-import spacex.exception.RocketAssignmentException;
+import spacex.exception.RocketStatusException;
 import spacex.repository.MissionRepository;
 import spacex.repository.RocketRepository;
 
@@ -23,25 +24,58 @@ public class MissionRocketAssignmentService {
     private RocketRepository rocketRepository;
     private MissionRepository missionRepository;
 
-    public void addRocket(Rocket rocket) {
+    public void addRocket(Rocket rocket) throws InvalidEntryException {
+        if (rocketRepository.getRocket(rocket.getName()) != null) {
+            throw new InvalidEntryException(ROCKET_ALREADY_EXISTS);
+        }
+
         rocketRepository.addRocket(rocket);
     }
 
-    public void assignRocketToMission(String rocketName, String missionName) throws RocketAssignmentException {
+    public void addMission(Mission mission) throws InvalidEntryException {
+        if (missionRepository.getMission(mission.getName()) != null) {
+            throw new InvalidEntryException(MISSION_ALREADY_EXISTS);
+        }
+
+        missionRepository.addMission(mission);
+    }
+
+    public void assignRocketToMission(String rocketName, String missionName) throws RocketStatusException, MissionStatusException {
         Rocket rocket = rocketRepository.getRocket(rocketName);
         Mission mission = missionRepository.getMission(missionName);
 
-        if (rocket == null || mission == null) {
-            throw new RocketAssignmentException(ROCKET_OR_MISSION_NOT_FOUND);
-        }
-
-        if (rocket.getStatus() != RocketStatus.ON_GROUND) {
-            throw new RocketAssignmentException(ROCKET_NOT_AVAILABLE);
-        }
+        validateRocket(rocket);
+        validateMission(mission);
 
         rocket.setStatus(RocketStatus.IN_SPACE);
-        mission.addRocket(rocket);
+        mission.getRockets().add(rocket);
         updateMissionStatus(mission);
+    }
+
+    private void validateRocket(Rocket rocket) throws RocketStatusException {
+        if (rocket == null) {
+            throw new RocketStatusException(ROCKET_NOT_FOUND);
+        }
+
+        if (!RocketStatus.ON_GROUND.equals(rocket.getStatus())) {
+            throw new RocketStatusException(ROCKET_NOT_AVAILABLE);
+        }
+    }
+
+    private void validateMission(Mission mission) throws MissionStatusException {
+        if (mission == null) {
+            throw new MissionStatusException(MISSION_NOT_FOUND);
+        }
+
+        if (MissionStatus.ENDED.equals(mission.getStatus())) {
+            throw new MissionStatusException(MISSION_NOT_AVAILABLE);
+        }
+    }
+
+    public void assignRocketsToMission(List<String> rocketNames, String missionName) throws RocketStatusException, MissionStatusException {
+        for (String rocketName : rocketNames) {
+            assignRocketToMission(rocketName, missionName);
+        }
     }
 
     public void changeRocketStatus(String rocketName, RocketStatus status) {
@@ -57,32 +91,61 @@ public class MissionRocketAssignmentService {
         }
     }
 
-    public void addMission(Mission mission) {
-        missionRepository.addMission(mission);
-    }
-
-    public void assignRocketsToMission(List<String> rocketNames, String missionName) throws RocketAssignmentException {
-        Mission mission = missionRepository.getMission(missionName);
-        if (mission == null) {
-            throw new RocketAssignmentException(ErrorMessages.MISSION_NOT_FOUND);
-        }
-
-        for (String rocketName : rocketNames) {
-            assignRocketToMission(rocketName, missionName);
-        }
-    }
-
     public void changeMissionStatus(String missionName, MissionStatus status) throws MissionStatusException {
         Mission mission = missionRepository.getMission(missionName);
+
         if (mission == null) {
             throw new MissionStatusException(ErrorMessages.MISSION_NOT_FOUND);
         }
 
-        if (status == MissionStatus.ENDED && !mission.getRockets().isEmpty()) {
-            throw new MissionStatusException(ErrorMessages.MISSION_CANNOT_END);
-        }
+        validateMissionStatusChange(mission, status);
 
         mission.setStatus(status);
+    }
+
+    private void validateMissionStatusChange(Mission mission, MissionStatus newStatus) throws MissionStatusException {
+        switch (newStatus) {
+            case ENDED:
+                validateEndedStatus(mission);
+                break;
+            case PENDING:
+                validatePendingStatus(mission);
+                break;
+            case SCHEDULED:
+                validateScheduledStatus(mission);
+                break;
+            case IN_PROGRESS:
+                validateInProgressStatus(mission);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void validateEndedStatus(Mission mission) throws MissionStatusException {
+        if (!mission.getRockets().isEmpty()) {
+            throw new MissionStatusException(ErrorMessages.MISSION_CANNOT_END);
+        }
+    }
+
+    private void validatePendingStatus(Mission mission) throws MissionStatusException {
+        if (mission.getRockets().isEmpty() || mission.getRockets().stream()
+                .noneMatch(rocket -> rocket.getStatus() == RocketStatus.IN_REPAIR)) {
+            throw new MissionStatusException(ErrorMessages.MISSION_CANNOT_BE_PENDING);
+        }
+    }
+
+    private void validateScheduledStatus(Mission mission) throws MissionStatusException {
+        if (!mission.getRockets().isEmpty()) {
+            throw new MissionStatusException(MISSION_CANNOT_BE_SCHEDULED);
+        }
+    }
+
+    private void validateInProgressStatus(Mission mission) throws MissionStatusException {
+        if (mission.getRockets().isEmpty() || mission.getRockets().stream()
+                .anyMatch(rocket -> rocket.getStatus() == RocketStatus.IN_REPAIR)) {
+            throw new MissionStatusException(MISSION_CANNOT_BE_IN_PROGRESS);
+        }
     }
 
     public List<Mission> getMissionSummary() {

@@ -4,8 +4,9 @@ import spacex.domain.Mission;
 import spacex.domain.MissionStatus;
 import spacex.domain.Rocket;
 import spacex.domain.RocketStatus;
+import spacex.exception.InvalidEntryException;
 import spacex.exception.MissionStatusException;
-import spacex.exception.RocketAssignmentException;
+import spacex.exception.RocketStatusException;
 import spacex.repository.MissionRepository;
 import spacex.repository.RocketRepository;
 import spacex.service.MissionRocketAssignmentService;
@@ -22,24 +23,24 @@ public class SpaceXLibrary {
         this.missionRocketAssignmentService = new MissionRocketAssignmentService(rocketRepository, missionRepository);
     }
 
-    public void addRocket(Rocket rocket) {
+    public void addRocket(Rocket rocket) throws InvalidEntryException {
         missionRocketAssignmentService.addRocket(rocket);
     }
 
-    public void assignRocketToMission(String rocketName, String missionName) throws RocketAssignmentException {
+    public void addMission(Mission mission) throws InvalidEntryException {
+        missionRocketAssignmentService.addMission(mission);
+    }
+
+    public void assignRocketToMission(String rocketName, String missionName) throws RocketStatusException, MissionStatusException {
         missionRocketAssignmentService.assignRocketToMission(rocketName, missionName);
+    }
+
+    public void assignRocketsToMission(List<String> rocketNames, String missionName) throws RocketStatusException, MissionStatusException {
+        missionRocketAssignmentService.assignRocketsToMission(rocketNames, missionName);
     }
 
     public void changeRocketStatus(String rocketName, RocketStatus status) {
         missionRocketAssignmentService.changeRocketStatus(rocketName, status);
-    }
-
-    public void addMission(Mission mission) {
-        missionRocketAssignmentService.addMission(mission);
-    }
-
-    public void assignRocketsToMission(List<String> rocketNames, String missionName) throws RocketAssignmentException {
-        missionRocketAssignmentService.assignRocketsToMission(rocketNames, missionName);
     }
 
     public void changeMissionStatus(String missionName, MissionStatus status) throws MissionStatusException {
