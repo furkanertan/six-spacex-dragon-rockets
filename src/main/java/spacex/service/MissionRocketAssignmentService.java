@@ -6,179 +6,156 @@ import spacex.domain.Mission;
 import spacex.domain.MissionStatus;
 import spacex.domain.Rocket;
 import spacex.domain.RocketStatus;
-import spacex.exception.InvalidEntryException;
-import spacex.exception.MissionStatusException;
-import spacex.exception.RocketStatusException;
+import spacex.exception.SpaceXException;
 import spacex.repository.MissionRepository;
 import spacex.repository.RocketRepository;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static spacex.constant.ErrorMessages.*;
 
 @AllArgsConstructor
 public class MissionRocketAssignmentService {
 
-    private RocketRepository rocketRepository;
-    private MissionRepository missionRepository;
+    private final RocketRepository rocketRepository;
+    private final MissionRepository missionRepository;
 
-    public void addRocket(Rocket rocket) throws InvalidEntryException {
+    // Add a new rocket
+    public void addRocket(Rocket rocket) throws SpaceXException {
         if (rocketRepository.getRocket(rocket.getName()) != null) {
-            throw new InvalidEntryException(ROCKET_ALREADY_EXISTS);
+            throw new SpaceXException(ROCKET_ALREADY_EXISTS);
         }
 
         rocketRepository.addRocket(rocket);
     }
 
-    public void addMission(Mission mission) throws InvalidEntryException {
+    // Add a new mission
+    public void addMission(Mission mission) throws SpaceXException {
         if (missionRepository.getMission(mission.getName()) != null) {
-            throw new InvalidEntryException(MISSION_ALREADY_EXISTS);
+            throw new SpaceXException(MISSION_ALREADY_EXISTS);
         }
 
         missionRepository.addMission(mission);
     }
 
-    public void assignRocketToMission(String rocketName, String missionName) throws RocketStatusException, MissionStatusException {
-        Rocket rocket = rocketRepository.getRocket(rocketName);
-        Mission mission = missionRepository.getMission(missionName);
+    // Assign a rocket to a mission
+    public void assignRocketToMission(String rocketName, String missionName) throws SpaceXException {
+        Rocket rocket = getRocketOrThrow(rocketName);
+        Mission mission = getMissionOrThrow(missionName);
 
-        validateRocket(rocket);
-        validateMission(mission);
+        validateRocketAssignment(rocket, mission);
 
         rocket.setStatus(RocketStatus.IN_SPACE);
         mission.getRockets().add(rocket);
         updateMissionStatus(mission);
     }
 
-    private void validateRocket(Rocket rocket) throws RocketStatusException {
-        if (rocket == null) {
-            throw new RocketStatusException(ROCKET_NOT_FOUND);
-        }
-
-        if (!RocketStatus.ON_GROUND.equals(rocket.getStatus())) {
-            throw new RocketStatusException(ROCKET_NOT_AVAILABLE);
-        }
-    }
-
-    private void validateMission(Mission mission) throws MissionStatusException {
-        if (mission == null) {
-            throw new MissionStatusException(MISSION_NOT_FOUND);
-        }
-
-        if (MissionStatus.ENDED.equals(mission.getStatus())) {
-            throw new MissionStatusException(MISSION_NOT_AVAILABLE);
-        }
-    }
-
-    public void assignRocketsToMission(List<String> rocketNames, String missionName) throws RocketStatusException, MissionStatusException {
+    // Assign multiple rockets to a mission
+    public void assignRocketsToMission(List<String> rocketNames, String missionName) throws SpaceXException {
         for (String rocketName : rocketNames) {
             assignRocketToMission(rocketName, missionName);
         }
     }
 
-    public void changeRocketStatus(String rocketName, RocketStatus status) {
+    // Change the status of a rocket
+    public void changeRocketStatus(String rocketName, RocketStatus newStatus) throws SpaceXException {
+        Rocket rocket = getRocketOrThrow(rocketName);
+
+        validateRocketStatusChange(rocket, newStatus);
+
+        rocket.setStatus(newStatus);
+
+        // Update the mission status if the rocket is assigned to a mission
+        missionRepository.getAllMissions().values().stream()
+                .filter(mission -> mission.getRockets().contains(rocket))
+                .findFirst()
+                .ifPresent(this::updateMissionStatus);
+    }
+
+    // Change the status of a mission
+    public void changeMissionStatus(String missionName, MissionStatus newStatus) throws SpaceXException {
+        Mission mission = getMissionOrThrow(missionName);
+
+        validateMissionStatusChange(mission, newStatus);
+
+        mission.setStatus(newStatus);
+    }
+
+    // Helper method to get a rocket or throw an exception if not found
+    private Rocket getRocketOrThrow(String rocketName) throws SpaceXException {
         Rocket rocket = rocketRepository.getRocket(rocketName);
-        if (rocket != null) {
-            rocket.setStatus(status);
-
-            // Find the mission this rocket is assigned to and update its status
-            missionRepository.getAllMissions().values().stream()
-                    .filter(mission -> mission.getRockets().contains(rocket))
-                    .findFirst()
-                    .ifPresent(this::updateMissionStatus);
+        if (rocket == null) {
+            throw new SpaceXException(ROCKET_NOT_FOUND);
         }
+        return rocket;
     }
 
-    public void changeMissionStatus(String missionName, MissionStatus status) throws MissionStatusException {
+    // Helper method to get a mission or throw an exception if not found
+    private Mission getMissionOrThrow(String missionName) throws SpaceXException {
         Mission mission = missionRepository.getMission(missionName);
-
         if (mission == null) {
-            throw new MissionStatusException(ErrorMessages.MISSION_NOT_FOUND);
+            throw new SpaceXException(MISSION_NOT_FOUND);
         }
-
-        validateMissionStatusChange(mission, status);
-
-        mission.setStatus(status);
+        return mission;
     }
 
-    private void validateMissionStatusChange(Mission mission, MissionStatus newStatus) throws MissionStatusException {
-        switch (newStatus) {
-            case ENDED:
-                validateEndedStatus(mission);
-                break;
-            case PENDING:
-                validatePendingStatus(mission);
-                break;
-            case SCHEDULED:
-                validateScheduledStatus(mission);
-                break;
-            case IN_PROGRESS:
-                validateInProgressStatus(mission);
-                break;
-            default:
-                break;
+    // Validate rocket assignment
+    private void validateRocketAssignment(Rocket rocket, Mission mission) throws SpaceXException {
+        if (!RocketStatus.ON_GROUND.equals(rocket.getStatus())) {
+            throw new SpaceXException(ROCKET_NOT_AVAILABLE);
+        }
+        if (MissionStatus.ENDED.equals(mission.getStatus())) {
+            throw new SpaceXException(MISSION_NOT_AVAILABLE);
         }
     }
 
-    private void validateEndedStatus(Mission mission) throws MissionStatusException {
-        if (!mission.getRockets().isEmpty()) {
-            throw new MissionStatusException(ErrorMessages.MISSION_CANNOT_END);
+    // Validate rocket status change
+    private void validateRocketStatusChange(Rocket rocket, RocketStatus newStatus) throws SpaceXException {
+        if (RocketStatus.IN_SPACE.equals(newStatus) && !isRocketAssignedToMission(rocket)) {
+            throw new SpaceXException(ErrorMessages.ROCKET_CANNOT_BE_IN_SPACE_WITHOUT_MISSION);
+        }
+        if (RocketStatus.ON_GROUND.equals(newStatus) && isRocketAssignedToMission(rocket)) {
+            throw new SpaceXException(ErrorMessages.ROCKET_CANNOT_BE_ON_GROUND);
         }
     }
 
-    private void validatePendingStatus(Mission mission) throws MissionStatusException {
-        if (mission.getRockets().isEmpty() || mission.getRockets().stream()
-                .noneMatch(rocket -> rocket.getStatus() == RocketStatus.IN_REPAIR)) {
-            throw new MissionStatusException(ErrorMessages.MISSION_CANNOT_BE_PENDING);
+    // Validate mission status change
+    private void validateMissionStatusChange(Mission mission, MissionStatus newStatus) throws SpaceXException {
+        if (MissionStatus.ENDED.equals(mission.getStatus())) {
+            throw new SpaceXException(ErrorMessages.MISSION_CANNOT_BE_UPDATED_AFTER_ENDED);
+        }
+        if (MissionStatus.SCHEDULED.equals(mission.getStatus())) {
+            throw new SpaceXException(ErrorMessages.MISSION_CANNOT_BE_UPDATED_AFTER_SCHEDULED);
+        }
+        if (MissionStatus.SCHEDULED.equals(newStatus)) {
+            throw new SpaceXException(ErrorMessages.MISSION_CANNOT_BE_RESCHEDULED);
         }
     }
 
-    private void validateScheduledStatus(Mission mission) throws MissionStatusException {
-        if (!mission.getRockets().isEmpty()) {
-            throw new MissionStatusException(MISSION_CANNOT_BE_SCHEDULED);
-        }
+    // Check if a rocket is assigned to any mission
+    private boolean isRocketAssignedToMission(Rocket rocket) {
+        return missionRepository.getAllMissions().values().stream()
+                .anyMatch(mission -> mission.getRockets().contains(rocket));
     }
 
-    private void validateInProgressStatus(Mission mission) throws MissionStatusException {
-        if (mission.getRockets().isEmpty() || mission.getRockets().stream()
-                .anyMatch(rocket -> rocket.getStatus() == RocketStatus.IN_REPAIR)) {
-            throw new MissionStatusException(MISSION_CANNOT_BE_IN_PROGRESS);
-        }
-    }
-
-    public List<Mission> getMissionSummary() {
-        Map<String, Mission> missions = missionRepository.getAllMissions();
-        List<Mission> missionList = new ArrayList<>(missions.values());
-
-        missionList.sort((m1, m2) -> {
-            int rocketCountComparison = Integer.compare(m2.getRockets().size(), m1.getRockets().size());
-            if (rocketCountComparison == 0) {
-                return m2.getName().compareTo(m1.getName());
-            }
-            return rocketCountComparison;
-        });
-
-        return missionList;
-    }
-
+    // Update the mission status based on the status of its rockets
     private void updateMissionStatus(Mission mission) {
         if (mission.getRockets().isEmpty()) {
-            // If no rockets are assigned, the mission should be "Scheduled"
             mission.setStatus(MissionStatus.SCHEDULED);
+        } else if (mission.getRockets().stream().anyMatch(rocket -> rocket.getStatus() == RocketStatus.IN_REPAIR)) {
+            mission.setStatus(MissionStatus.PENDING);
         } else {
-            // Check if any rocket is in repair
-            boolean anyRocketInRepair = mission.getRockets().stream()
-                    .anyMatch(rocket -> rocket.getStatus() == RocketStatus.IN_REPAIR);
-
-            if (anyRocketInRepair) {
-                // If any rocket is in repair, the mission should be "Pending"
-                mission.setStatus(MissionStatus.PENDING);
-            } else {
-                // If no rockets are in repair, the mission should be "In Progress"
-                mission.setStatus(MissionStatus.IN_PROGRESS);
-            }
+            mission.setStatus(MissionStatus.IN_PROGRESS);
         }
+    }
+
+    // Get a summary of missions, ordered by the number of rockets assigned
+    public List<Mission> getMissionSummary() {
+        return missionRepository.getAllMissions().values().stream()
+                .sorted((m1, m2) -> {
+                    int rocketCountComparison = Integer.compare(m2.getRockets().size(), m1.getRockets().size());
+                    return rocketCountComparison != 0 ? rocketCountComparison : m2.getName().compareTo(m1.getName());
+                })
+                .toList();
     }
 }
