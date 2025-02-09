@@ -2,20 +2,20 @@
 
 This is a simple Java library for managing SpaceX Dragon Rockets and Missions. The library provides basic operations such as adding rockets, assigning rockets to missions, changing statuses, and retrieving mission summaries.
 
-## Setup
+## **Setup**
 
 Prerequisites
 - Java 17 or higher
 - Maven (for building the project)
 
-## Assumptions
+## **Assumptions**
 
 - Rockets can only be assigned to one mission at a time. (It means that rockets can change their mission's unless they are assigned to 1 mission.)
 - Missions can have multiple rockets assigned.
 - The status of a mission is automatically updated based on the status of its assigned rockets.
 - A mission cannot be ended if it still has rockets assigned.
 
-## Project Structure
+## **Project Structure**
 
 ### Domain
 
@@ -87,7 +87,7 @@ The MissionSummaryFormatter utility class is responsible for formatting the miss
 ### SpaceXLibrary
 SpaceXLibrary is the entry point for the application. It initializes the repositories, adds data, changes statuses and gets summary of missions.
 
-## Functionalities
+## **Functionalities**
 
 ### Adding new Rocket
 New rockets can be created only with unique name. When it tries to create rockets with same name, it throws an exception that `Rocket already exist!`
@@ -125,7 +125,7 @@ OLD_STATUS -> NEW_STATUS
 
 Get a summary of missions by number of rockets assigned. Missions with the same number of rockets are ordered in descending alphabetical order.
 
-## Usage
+## **Usage**
 
 1. Create an instance of `SpaceXLibrary`.
 2. Use the provided methods to add rockets, missions, and perform operations.
@@ -161,7 +161,7 @@ String missionSummary = library.getMissionSummary();
 System.out.println(missionSummary);
 ```
 
-## Questions
+## **Questions**
 
 1. I implemented "Changing Mission Status" functionality as automatically, not manually due to example below:
 For example, there is a mission data like in below:
