@@ -20,13 +20,44 @@ Prerequisites
 ### Domain
 
 #### `Mission`
-The class contains data of Mission: mission name, mission status and list of assigned rocket to the mission
+The Mission class contains the following data:
+
+- name: The name of the mission (e.g., "Mars", "Transit").
+- status: The status of the mission (e.g., "IN_PROGRESS", "SCHEDULED").
+- rockets: A list of rockets assigned to the mission.
+```java
+public class Mission {
+private String name;
+private MissionStatus status;
+private List<Rocket> rockets;
+}
+```
 
 #### `Rocket`
-The class contains data of Rocket: rocket name and rocket status
+The Rocket class contains the following data:
+
+name: The name of the rocket (e.g., "Falcon Heavy", "Dragon XL").
+status: The status of the rocket (e.g., "ON_GROUND", "IN_SPACE", "IN_REPAIR").
+```java
+public class Rocket {
+private String name;
+private RocketStatus status;
+}
+```
 
 #### `MissionStatus`
+Mission can have statuses:
+- “Scheduled” – initial status, where no rockets are assigned
+- “Pending” – at least one rocket is assigned and one or more assigned rockets are in repair
+- “In Progress” – at least one rocket is assigned and none of them is in repair
+- “Ended” – the final stage of the mission, at this point rockets should not be assigned
+anymore to a mission
+
 #### `RocketStatus`
+Rocket can have statuses:
+- “On ground” – initial status, where the rocket is not assigned to any mission
+- “In space” – the rocket was assigned to the mission
+- “In repair” – the rocket is due to repair, it implies “Pending” status of the mission
 
 ### Exception
 
@@ -46,6 +77,7 @@ This class is responsible for storing and retrieving rocket data. It uses an in-
 ### Service
 
 #### `MissionRocketAssignmentService`
+The MissionRocketAssignmentService is the main service class that contains the core logics of the application.
 
 ### Util
 
