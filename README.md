@@ -6,7 +6,7 @@ This is a simple Java library for managing SpaceX Dragon Rockets and Missions. T
 
 Prerequisites
 - Java 17 or higher
-- Maven (for building the project0
+- Maven (for building the project)
 
 ## Assumptions
 
@@ -14,6 +14,46 @@ Prerequisites
 - Missions can have multiple rockets assigned.
 - The status of a mission is automatically updated based on the status of its assigned rockets.
 - A mission cannot be ended if it still has rockets assigned.
+
+## Project Structure
+
+### Domain
+
+#### `Mission`
+The class contains data of Mission: mission name, mission status and list of assigned rocket to the mission
+
+#### `Rocket`
+The class contains data of Rocket: rocket name and rocket status
+
+#### `MissionStatus`
+#### `RocketStatus`
+
+### Exception
+
+#### `SpaceXException`
+The SpaceXException is a custom exception that is thrown when specific issues or errors occur within the SpaceX domain, such as missing mission data or invalid rocket statuses.
+
+### Repository
+Repository classes help to keep related data in the related class within in-memory data structures.
+In the future, it can be updated to database table if required.
+
+#### `MissionRepository`
+This class is responsible for storing and retrieving mission data. It uses an in-memory Map to keep the missions indexed by their name.
+
+#### `RocketRepository`
+This class is responsible for storing and retrieving rocket data. It uses an in-memory Map to keep the rockets indexed by their name.
+
+### Service
+
+#### `MissionRocketAssignmentService`
+
+### Util
+
+#### `MissionSummaryFormatter`
+The MissionSummaryFormatter utility class is responsible for formatting the mission and rocket data into a readable string. It ensures that the summary is well-structured and easy to read.
+
+### SpaceXLibrary
+SpaceXLibrary is the entry point for the application. It initializes the repositories, adds data, changes statuses and gets summary of missions.
 
 ## Functionalities
 
@@ -50,6 +90,8 @@ OLD_STATUS -> NEW_STATUS
 - `IN_REPAIR` -> `ON_GROUND`: ->  Rocket is back to initial state, If mission had only 1 rocket, it should be ENDED, if there are more rockets, mission should remain as "In Progress" or "Pending" according to left mission's status.
 
 ### Getting Summary of Missions
+
+Get a summary of missions by number of rockets assigned. Missions with the same number of rockets are ordered in descending alphabetical order.
 
 ## Usage
 
