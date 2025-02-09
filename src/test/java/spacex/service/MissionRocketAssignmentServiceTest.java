@@ -97,11 +97,18 @@ class MissionRocketAssignmentServiceTest {
         missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName());
 
         // Then
-        assertEquals(RocketStatus.IN_SPACE, rocket.getStatus());
-        assertEquals(1, mission.getRockets().size());
+        Mission assignedMission = missionRepository.getMission(mission.getName());
 
-        assertTrue(mission.getRockets().contains(rocket));
+        assertNotNull(assignedMission);
+        assertEquals(mission.getName(), assignedMission.getName());
         assertEquals(MissionStatus.IN_PROGRESS, mission.getStatus());
+
+        List<Rocket> rockets = assignedMission.getRockets();
+
+        assertNotNull(rockets);
+
+        Rocket assignedRocket = rockets.get(0);
+        assertEquals(RocketStatus.IN_SPACE, assignedRocket.getStatus());
     }
 
     @Test
@@ -138,28 +145,29 @@ class MissionRocketAssignmentServiceTest {
     }
 
     @Test
-    void should_ThrowException_WhenInRepairRocket_AssignedToMission() throws SpaceXException {
+    void should_ThrowException_WhenInRepairRocket_WithoutMission_AssignedToOtherMission() throws SpaceXException {
         // Given
         Rocket rocket = new Rocket("Dragon 1");
         rocket.setStatus(RocketStatus.IN_REPAIR);
 
-        Mission mission = new Mission("Jupiter");
-
         missionRocketAssignmentService.addRocket(rocket);
+
+        Mission mission = new Mission("Jupiter");
+        missionRocketAssignmentService.addMission(mission);
 
         // When & Then
         assertThrows(SpaceXException.class, () -> missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName()));
     }
 
     @Test
-    void should_ThrowException_WhenAlreadyInSpaceRocket_AssignedToMission() throws SpaceXException {
+    void should_ThrowException_WhenInSpaceRocket_WithoutMission_AssignedToMission() throws SpaceXException {
         // Given
         Rocket rocket = new Rocket("Dragon 1");
         rocket.setStatus(RocketStatus.IN_SPACE);
+        missionRocketAssignmentService.addRocket(rocket);
 
         Mission mission = new Mission("Mars");
-
-        missionRocketAssignmentService.addRocket(rocket);
+        missionRocketAssignmentService.addMission(mission);
 
         // When & Then
         assertThrows(SpaceXException.class, () -> missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName()));
@@ -190,16 +198,33 @@ class MissionRocketAssignmentServiceTest {
     }
 
     @Test
-    void should_ChangeRocketStatus() throws SpaceXException {
+    void should_ChangeRocketStatusToInRepair_And_UpdateMissionStatusToPending() throws SpaceXException {
         // Given
         Rocket rocket = new Rocket("Dragon 1");
         missionRocketAssignmentService.addRocket(rocket);
+
+        Mission mission = new Mission("Mars");
+        missionRocketAssignmentService.addMission(mission);
+
+        missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName());
+
+        assertEquals(MissionStatus.IN_PROGRESS, mission.getStatus());
+        assertEquals(RocketStatus.IN_SPACE, rocket.getStatus());
 
         // When
         missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_REPAIR);
 
         // Then
-        assertEquals(RocketStatus.IN_REPAIR, rocket.getStatus());
+        Mission assignedMission = missionRepository.getMission(mission.getName());
+        assertNotNull(assignedMission);
+
+        List<Rocket> rockets = mission.getRockets();
+        assertEquals(1, rockets.size());
+        assertEquals(MissionStatus.PENDING, assignedMission.getStatus());
+
+        Rocket assignedRocket = rockets.get(0);
+
+        assertEquals(RocketStatus.IN_REPAIR, assignedRocket.getStatus());
     }
 
     @Test
@@ -213,54 +238,89 @@ class MissionRocketAssignmentServiceTest {
     }
 
     @Test
-    void should_ChangeRocketStatusToInRepair_And_UpdateMissionStatusToPending() throws SpaceXException {
+    void should_ThrowException_WhenRocketStatusChangeInRepair_WithNoMissionAssigned() throws SpaceXException {
         // Given
-        Rocket rocket = new Rocket("Dragon XL");
+        Rocket rocket = new Rocket("Dragon 1");
         missionRocketAssignmentService.addRocket(rocket);
 
-        Mission mission = new Mission("Mars 5");
-        missionRocketAssignmentService.addMission(mission);
-
-        missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName());
-
-        // When
-        missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_REPAIR);
-
         // When & Then
-        assertEquals(1, mission.getRockets().size());
-        assertEquals(RocketStatus.IN_REPAIR, rocket.getStatus());
-
-        assertEquals(1, missionRepository.getAllMissions().size());
-        Mission updatedMission = missionRepository.getMission(mission.getName());
-        assertEquals(MissionStatus.PENDING, updatedMission.getStatus());
-    }
-
-    @Test
-    void should_ChangeRocketStatusToOnGround_And_UpdateMissionStatusToPending() throws SpaceXException {
-        // Given
-        Rocket rocket = new Rocket("Dragon XL");
-        missionRocketAssignmentService.addRocket(rocket);
-
-        Mission mission = new Mission("Mars 5");
-        missionRocketAssignmentService.addMission(mission);
-
-        missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName());
-
-        // When
-        missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_REPAIR);
-
-        // When & Then
-        assertEquals(1, mission.getRockets().size());
-        assertEquals(RocketStatus.IN_REPAIR, rocket.getStatus());
-
-        assertEquals(1, missionRepository.getAllMissions().size());
-        Mission updatedMission = missionRepository.getMission(mission.getName());
-        assertEquals(MissionStatus.PENDING, updatedMission.getStatus());
+        assertThrows(SpaceXException.class, () -> missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_REPAIR));
     }
 
     @Test
     void should_ChangeRocketStatusToInSpace_And_UpdateMissionStatusToInProgress() throws SpaceXException {
         // Given
+        Rocket rocket1 = new Rocket("Dragon XL");
+        missionRocketAssignmentService.addRocket(rocket1);
+
+        Rocket rocket2 = new Rocket("Dragon Red");
+        missionRocketAssignmentService.addRocket(rocket2);
+
+        Mission mission = new Mission("Mars 5");
+        missionRocketAssignmentService.addMission(mission);
+
+        missionRocketAssignmentService.assignRocketsToMission(List.of(rocket1.getName(), rocket2.getName()), mission.getName());
+
+        missionRocketAssignmentService.changeRocketStatus(rocket1.getName(), RocketStatus.IN_REPAIR);
+
+        assertEquals(MissionStatus.PENDING, mission.getStatus());
+
+        // When
+        missionRocketAssignmentService.changeRocketStatus(rocket1.getName(), RocketStatus.IN_SPACE);
+
+        // Then
+        Mission assignedMission = missionRepository.getMission(mission.getName());
+        assertNotNull(assignedMission);
+        assertEquals(MissionStatus.IN_PROGRESS, assignedMission.getStatus());
+
+        List<Rocket> rockets = mission.getRockets();
+        assertEquals(2, rockets.size());
+
+        assertEquals(RocketStatus.IN_SPACE, rockets.get(0).getStatus());
+        assertEquals(RocketStatus.IN_SPACE, rockets.get(1).getStatus());
+    }
+
+    @Test
+    void should_ChangeRocketStatusToInSpace_And_MissionStatusRemainPending() throws SpaceXException {
+        // Given
+        Rocket rocket1 = new Rocket("Dragon XL");
+        missionRocketAssignmentService.addRocket(rocket1);
+
+        Rocket rocket2 = new Rocket("Dragon Red");
+        missionRocketAssignmentService.addRocket(rocket2);
+
+        Rocket rocket3 = new Rocket("Dragon Blue");
+        missionRocketAssignmentService.addRocket(rocket3);
+
+        Mission mission = new Mission("Venus");
+        missionRocketAssignmentService.addMission(mission);
+
+        missionRocketAssignmentService.assignRocketsToMission(List.of(rocket1.getName(), rocket2.getName(), rocket3.getName()), mission.getName());
+
+        missionRocketAssignmentService.changeRocketStatus(rocket1.getName(), RocketStatus.IN_REPAIR);
+        missionRocketAssignmentService.changeRocketStatus(rocket2.getName(), RocketStatus.IN_REPAIR);
+
+        assertEquals(MissionStatus.PENDING, mission.getStatus());
+
+        // When
+        missionRocketAssignmentService.changeRocketStatus(rocket2.getName(), RocketStatus.IN_SPACE);
+
+        // Then
+        Mission assignedMission = missionRepository.getMission(mission.getName());
+        assertNotNull(assignedMission);
+        assertEquals(MissionStatus.PENDING, assignedMission.getStatus());
+
+        List<Rocket> rockets = mission.getRockets();
+        assertEquals(3, rockets.size());
+
+        assertEquals(RocketStatus.IN_REPAIR, rockets.get(0).getStatus());
+        assertEquals(RocketStatus.IN_SPACE, rockets.get(1).getStatus());
+        assertEquals(RocketStatus.IN_SPACE, rockets.get(2).getStatus());
+    }
+
+    @Test
+    void should_ChangeRocketStatusToOnGround_And_UpdateMissionStatusToEnded() throws SpaceXException {
+        // Given
         Rocket rocket = new Rocket("Dragon XL");
         missionRocketAssignmentService.addRocket(rocket);
 
@@ -269,60 +329,84 @@ class MissionRocketAssignmentServiceTest {
 
         missionRocketAssignmentService.assignRocketToMission(rocket.getName(), mission.getName());
 
-        missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_REPAIR);
-
         // When
-        missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_SPACE);
+        missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.ON_GROUND);
 
         // Then
-        assertEquals(1, mission.getRockets().size());
+        Mission assignedMission = missionRepository.getMission(mission.getName());
+        assertNotNull(assignedMission);
+        assertEquals(MissionStatus.ENDED, assignedMission.getStatus());
+
+        List<Rocket> rockets = assignedMission.getRockets();
+        assertEquals(0, rockets.size());
+    }
+
+    @Test
+    void should_ChangeRocketStatusToOnGround_And_UpdateMissionStatusToInProgress() throws SpaceXException {
+        // Given
+        Rocket rocket1 = new Rocket("Dragon XL");
+        missionRocketAssignmentService.addRocket(rocket1);
+
+        Rocket rocket2 = new Rocket("Faze");
+        missionRocketAssignmentService.addRocket(rocket2);
+
+        Mission mission = new Mission("Mars 5");
+        missionRocketAssignmentService.addMission(mission);
+
+        missionRocketAssignmentService.assignRocketsToMission(List.of(rocket1.getName(), rocket2.getName()), mission.getName());
+
+        missionRocketAssignmentService.changeRocketStatus(rocket2.getName(), RocketStatus.IN_REPAIR);
+
+        assertEquals(MissionStatus.PENDING, mission.getStatus());
+        assertEquals(2, mission.getRockets().size());
+
+        // When
+        missionRocketAssignmentService.changeRocketStatus(rocket2.getName(), RocketStatus.ON_GROUND);
+
+        // Then
+        Mission assignedMission = missionRepository.getMission(mission.getName());
+        assertNotNull(assignedMission);
+        assertEquals(MissionStatus.IN_PROGRESS, assignedMission.getStatus());
+
+        List<Rocket> rockets = assignedMission.getRockets();
+        assertEquals(1, rockets.size());
+
+        Rocket rocket = rockets.get(0);
         assertEquals(RocketStatus.IN_SPACE, rocket.getStatus());
-
-        assertEquals(1, missionRepository.getAllMissions().size());
-        Mission updatedMission = missionRepository.getMission(mission.getName());
-        assertEquals(MissionStatus.IN_PROGRESS, updatedMission.getStatus());
     }
 
     @Test
-    void should_ThrowException_WhenRocketStatusChange_FromInRepairToInSpace_WithNoMissionAssigned() throws SpaceXException {
+    void should_ChangeRocketStatusToOnGround_And_MissionStatusRemainPending() throws SpaceXException {
         // Given
-        Rocket rocket = new Rocket("Dragon XL");
-        missionRocketAssignmentService.addRocket(rocket);
+        Rocket rocket1 = new Rocket("Dragon XL");
+        missionRocketAssignmentService.addRocket(rocket1);
 
-        missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_REPAIR);
+        Rocket rocket2 = new Rocket("Faze");
+        missionRocketAssignmentService.addRocket(rocket2);
 
-        // When & Then
-        assertThrows(SpaceXException.class, () -> missionRocketAssignmentService.changeRocketStatus(rocket.getName(), RocketStatus.IN_SPACE));
-    }
-
-
-    @Test
-    void shouldChangeMissionStatus() throws SpaceXException {
-        // Given
-        Mission mission = new Mission("Mars");
+        Mission mission = new Mission("Mars 5");
         missionRocketAssignmentService.addMission(mission);
 
-        // When
-        missionRocketAssignmentService.changeMissionStatus("Mars", MissionStatus.IN_PROGRESS);
+        missionRocketAssignmentService.assignRocketsToMission(List.of(rocket1.getName(), rocket2.getName()), mission.getName());
 
-        // Then
-        assertEquals(MissionStatus.IN_PROGRESS, mission.getStatus());
-    }
+        missionRocketAssignmentService.changeRocketStatus(rocket2.getName(), RocketStatus.IN_REPAIR);
 
-    @Test
-    void shouldEndMissionWithRocketsAssigned() throws SpaceXException {
-        // Given
-        Rocket rocket = new Rocket("Dragon 1");
-        Mission mission = new Mission("Mars");
-
-        missionRocketAssignmentService.addRocket(rocket);
-        missionRocketAssignmentService.addMission(mission);
+        assertEquals(MissionStatus.PENDING, mission.getStatus());
+        assertEquals(2, mission.getRockets().size());
 
         // When
-        missionRocketAssignmentService.assignRocketToMission("Dragon 1", "Mars");
+        missionRocketAssignmentService.changeRocketStatus(rocket1.getName(), RocketStatus.ON_GROUND);
 
         // Then
-        assertThrows(SpaceXException.class, () -> missionRocketAssignmentService.changeMissionStatus("Mars", MissionStatus.ENDED));
+        Mission assignedMission = missionRepository.getMission(mission.getName());
+        assertNotNull(assignedMission);
+        assertEquals(MissionStatus.PENDING, assignedMission.getStatus());
+
+        List<Rocket> rockets = assignedMission.getRockets();
+        assertEquals(1, rockets.size());
+
+        Rocket rocket = rockets.get(0);
+        assertEquals(RocketStatus.IN_REPAIR, rocket.getStatus());
     }
 
     @Test
@@ -346,30 +430,7 @@ class MissionRocketAssignmentServiceTest {
 
         // Then
         assertEquals(2, summary.size());
-        assertEquals("Mars", summary.get(0).getName()); // Mars has 1 rocket
-        assertEquals("Luna", summary.get(1).getName()); // Luna has 1 rocket
-    }
-
-    @Test
-    void shouldMissionStatusUpdatedWhenRocketStatusInRepair() throws SpaceXException {
-        // Given
-        Rocket rocket1 = new Rocket("Dragon 1");
-        Rocket rocket2 = new Rocket("Dragon 2");
-        Mission mission = new Mission("Mars");
-
-        missionRocketAssignmentService.addRocket(rocket1);
-        missionRocketAssignmentService.addRocket(rocket2);
-        missionRocketAssignmentService.addMission(mission);
-
-        missionRocketAssignmentService.assignRocketToMission(rocket1.getName(), mission.getName());
-        missionRocketAssignmentService.assignRocketToMission(rocket2.getName(), mission.getName());
-
-        assertEquals(MissionStatus.IN_PROGRESS, mission.getStatus());
-
-        // When
-        missionRocketAssignmentService.changeRocketStatus(rocket1.getName(), RocketStatus.IN_REPAIR);
-
-        // Then
-        assertEquals(MissionStatus.PENDING, mission.getStatus());
+        assertEquals("Mars", summary.get(0).getName());
+        assertEquals("Luna", summary.get(1).getName());
     }
 }

@@ -1,7 +1,6 @@
 package spacex;
 
 import spacex.domain.Mission;
-import spacex.domain.MissionStatus;
 import spacex.domain.Rocket;
 import spacex.domain.RocketStatus;
 import spacex.exception.SpaceXException;
@@ -39,10 +38,6 @@ public class SpaceXLibrary {
 
     public void changeRocketStatus(String rocketName, RocketStatus status) throws SpaceXException {
         missionRocketAssignmentService.changeRocketStatus(rocketName, status);
-    }
-
-    public void changeMissionStatus(String missionName, MissionStatus status) throws SpaceXException {
-        missionRocketAssignmentService.changeMissionStatus(missionName, status);
     }
 
     public List<Mission> getMissionSummary() {
