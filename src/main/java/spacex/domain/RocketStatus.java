@@ -10,5 +10,5 @@ public enum RocketStatus {
     IN_SPACE("In space"),
     IN_REPAIR("In repair");
 
-    private final String status;
+    private final String statusName;
 }

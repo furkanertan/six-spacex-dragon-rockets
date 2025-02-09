@@ -18,7 +18,7 @@ class RocketRepositoryTest {
     }
 
     @Test
-    void shouldAddAndRetrieveRocket() {
+    void should_AddAndRetrieveRocket() {
         // Given & When
         rocketRepository.addRocket(rocket);
         Rocket createdRocket = rocketRepository.getRocket("Falcon 9");
@@ -29,7 +29,7 @@ class RocketRepositoryTest {
     }
 
     @Test
-    void testRetrieveNonExistentRocket() {
+    void should_ReturnNull_IfRocketDoesNotExist() {
         // Given & When & Then
         assertNull(rocketRepository.getRocket("Starship"));
     }

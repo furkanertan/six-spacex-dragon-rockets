@@ -9,7 +9,9 @@ import spacex.domain.RocketStatus;
 import spacex.exception.SpaceXException;
 import spacex.repository.MissionRepository;
 import spacex.repository.RocketRepository;
+import spacex.util.MissionSummaryFormatter;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -136,13 +138,12 @@ public class MissionRocketAssignmentService {
         }
     }
 
-    // Get a summary of missions, ordered by the number of rockets assigned
-    public List<Mission> getMissionSummary() {
-        return missionRepository.getAllMissions().values().stream()
-                .sorted((m1, m2) -> {
-                    int rocketCountComparison = Integer.compare(m2.getRockets().size(), m1.getRockets().size());
-                    return rocketCountComparison != 0 ? rocketCountComparison : m2.getName().compareTo(m1.getName());
-                })
+    public String getMissionSummary() {
+        List<Mission> sortedMissions = missionRepository.getAllMissions().values().stream()
+                .sorted(Comparator.comparingInt((Mission m) -> -m.getRockets().size())
+                        .thenComparing(Mission::getName, Comparator.reverseOrder()))
                 .toList();
+
+        return MissionSummaryFormatter.formatMissions(sortedMissions);
     }
 }

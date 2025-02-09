@@ -11,5 +11,5 @@ public enum MissionStatus {
     IN_PROGRESS("In Progress"),
     ENDED("Ended");
 
-    private final String status;
+    private final String statusName;
 }

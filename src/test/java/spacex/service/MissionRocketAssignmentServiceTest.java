@@ -185,7 +185,7 @@ class MissionRocketAssignmentServiceTest {
         missionRocketAssignmentService.addMission(mission);
 
         // When
-        missionRocketAssignmentService.assignRocketsToMission(Arrays.asList("Dragon 1", "Dragon 2"), "Mars");
+        missionRocketAssignmentService.assignRocketsToMission(Arrays.asList(rocket1.getName(), rocket2.getName()), mission.getName());
 
         // Then
         assertEquals(2, mission.getRockets().size());
@@ -410,27 +410,31 @@ class MissionRocketAssignmentServiceTest {
     }
 
     @Test
-    void shouldGetMissionSummary() throws SpaceXException {
+    void should_GetMissionSummary() throws SpaceXException {
         // Given
         Mission mission1 = new Mission("Mars");
         Mission mission2 = new Mission("Luna");
         Rocket rocket1 = new Rocket("Dragon 1");
         Rocket rocket2 = new Rocket("Dragon 2");
 
+        String expected = """
+                • Mars – In Progress – Dragons: 1
+                   • Dragon 1 – In space
+                • Luna – In Progress – Dragons: 1
+                   • Dragon 2 – In space""";
+
         missionRocketAssignmentService.addMission(mission1);
         missionRocketAssignmentService.addMission(mission2);
         missionRocketAssignmentService.addRocket(rocket1);
         missionRocketAssignmentService.addRocket(rocket2);
 
-        missionRocketAssignmentService.assignRocketToMission("Dragon 1", "Mars");
-        missionRocketAssignmentService.assignRocketToMission("Dragon 2", "Luna");
+        missionRocketAssignmentService.assignRocketToMission(rocket1.getName(), mission1.getName());
+        missionRocketAssignmentService.assignRocketToMission(rocket2.getName(), mission2.getName());
 
         // When
-        List<Mission> summary = missionRocketAssignmentService.getMissionSummary();
+        String summary = missionRocketAssignmentService.getMissionSummary();
 
         // Then
-        assertEquals(2, summary.size());
-        assertEquals("Mars", summary.get(0).getName());
-        assertEquals("Luna", summary.get(1).getName());
+        assertEquals(expected, summary);
     }
 }

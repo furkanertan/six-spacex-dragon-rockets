@@ -40,7 +40,7 @@ public class SpaceXLibrary {
         missionRocketAssignmentService.changeRocketStatus(rocketName, status);
     }
 
-    public List<Mission> getMissionSummary() {
+    public String getMissionSummary() {
         return missionRocketAssignmentService.getMissionSummary();
     }
 }

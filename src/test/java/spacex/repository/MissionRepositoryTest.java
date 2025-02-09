@@ -22,7 +22,7 @@ class MissionRepositoryTest {
     }
 
     @Test
-    void shouldAddAndRetrieveMission() {
+    void should_Add_And_RetrieveMission() {
         // Given & When
         missionRepository.addMission(mission1);
         Mission createdMission = missionRepository.getMission("Apollo 11");
@@ -33,13 +33,13 @@ class MissionRepositoryTest {
     }
 
     @Test
-    void shouldReturnNullIfMissionDoesNotExist() {
+    void should_ReturnNull_IfMissionDoesNotExist() {
         // Given & When & Then
         assertNull(missionRepository.getMission("Voyager"));
     }
 
     @Test
-    void shouldGetAllMissions() {
+    void should_GetAllMissions() {
         // Given
         missionRepository.addMission(mission1);
         missionRepository.addMission(mission2);

@@ -51,15 +51,30 @@ OLD_STATUS -> NEW_STATUS
 ```java
 SpaceXLibrary library = new SpaceXLibrary();
 
+// Add rockets
 Rocket rocket1 = new Rocket("Dragon 1");
-Mission mission1 = new Mission("Mars");
-
+Rocket rocket2 = new Rocket("Dragon 2");
+Rocket rocket3 = new Rocket("Dragon 3");
 library.addRocket(rocket1);
+library.addRocket(rocket2);
+library.addRocket(rocket3);
+
+// Add missions
+Mission mission1 = new Mission("Mars");
+Mission mission2 = new Mission("Luna");
 library.addMission(mission1);
+library.addMission(mission2);
 
-library.assignRocketToMission("Dragon 1", "Mars");
+// Assign rockets to missions
+library.assignRocketToMission(rocket1.getName(), mission1.getName());
+library.assignRocketsToMission(List.of(rocket2.getName(), rocket3.getName()), mission2.getName());
 
-List<Mission> summary = library.getMissionSummary();
+// Change statuses
+library.changeRocketStatus(rocket1.getName(), RocketStatus.IN_REPAIR);
+
+// Get mission summary
+String missionSummary = library.getMissionSummary();
+System.out.println(missionSummary);
 ```
 
 ## Questions
@@ -72,5 +87,3 @@ For example, there is a mission data like in below:
       
     If mission status updated to "PENDING", we need to have one of rockets in "IN_REPAIR" status, how to decide which one? 
     So, in this case it doesn't make sense to have manual update for mission status, it should be only updated by rocket status changes.
-
-2. I assumed that Example summary data is given just to show how data should look like. Because there are some misleading logic in this data.
