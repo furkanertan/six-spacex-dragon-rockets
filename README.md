@@ -81,9 +81,13 @@ System.out.println(missionSummary);
 
 1. I implemented "Changing Mission Status" functionality as automatically, not manually due to example below:
 For example, there is a mission data like in below:
+
    2. Mission_1 - IN_PROGRESS - Dragons: 2
+   
       3. ● Red Dragon – In Space
+      
       4. ● Dragon XL – In space
       
-    If mission status updated to "PENDING", we need to have one of rockets in "IN_REPAIR" status, how to decide which one? 
+    If mission status updated to "PENDING", we need to have one of rockets in "IN_REPAIR" status, how to decide which one?
+
     So, in this case it doesn't make sense to have manual update for mission status, it should be only updated by rocket status changes.
